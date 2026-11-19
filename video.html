@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>브랜드 로드맵 1분 영상</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+ :root{--bg:#0f1720;--ink:#f4efe6;--accent:#e4572e;--line:#c9b99a;}
+ html,body{margin:0;background:#05080c;color:var(--ink);font-family:'Noto Sans KR',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}
+ canvas{width:min(100vw,1280px);aspect-ratio:16/9;background:var(--bg);display:block}
+ button{margin:16px;padding:12px 28px;font:700 16px 'Noto Sans KR';background:var(--accent);color:#fff;border:0;border-radius:8px;cursor:pointer}
+ #st{font-size:13px;opacity:.7}
+</style></head><body>
+<canvas id="c" width="1280" height="720"></canvas>
+<div><button id="play">▶ 재생</button><button id="rec">● 녹화(webm 저장)</button></div>
+<div id="st"></div>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),W=1280,H=720;
+const BG='#0f1720',INK='#f4efe6',AC='#e4572e',LN='#c9b99a',MUT='#7d8894';
+const F=(w,s)=>`${w} ${s}px 'Noto Sans KR', sans-serif`;
+const ease=t=>t<0?0:t>1?1:1-Math.pow(1-t,3);
+const clamp=t=>Math.max(0,Math.min(1,t));
+// data
+const total=[89.27,78.89,88.88,77.68,88.3,79.2,92.09,98.4,79.27,92.55,82.19,99.41,109.76,103.27,102.86,94.4,108.58,93.27,99.51,106.76,91.76];
+const hist=[22,39,32,38,22,30,19,9], histL=['<2천','2~3천','3~4천','4~5천','5~6천','6~8천','8천~1억','1억+'];
+let scatter=[[99,15324],[88.3,2288],[86.8,8323],[77,7787],[86.3,2826],[85.8,5183],[82,1056],[77.3,5721],[95,3682],[56.3,3017],[81.8,6226],[87,8557],[85.5,3101],[90.5,9564],[90.3,4622],[96.3,11618],[89.5,4881],[89.5,8643],[74.5,7552],[77.8,10483],[87.8,9992],[79,6218],[84.3,6165],[67.8,3531],[93,10868],[81.3,6058],[98,3014],[98,7787],[88.3,6234],[83.3,5846],[87.5,5497],[100,15143],[89,2972],[93.8,10528],[75.5,9394],[81.8,7750],[76,9510],[87.5,8009],[93,5604],[99,4546],[86.3,5718],[88.3,4306],[75.3,2462],[88,4949],[91.8,15179],[91.8,12811],[84,10117],[95.8,2781],[71.8,1341],[99,5025],[94.5,5014],[94,3976],[92.8,9497],[87,4571],[92.8,4798],[74.3,8513],[86.5,737],[85,6042],[95,2728],[74,9592],[84.8,8687],[97.3,4835],[82.3,6975],[98.5,7092],[91,6427],[93.8,4679],[91.3,5189],[94.3,4083],[92.3,6201],[87.5,8863],[93.5,2500],[77,3784],[86.8,4712],[89.8,8345],[86.3,3815],[93.5,3978],[74.8,8089],[79.3,6809],[85,3826],[92.3,2816],[96.8,4535],[88,2084],[96.5,2286],[82,2257],[84.5,5566],[89.5,5824],[79.8,4264],[93.5,3523],[87.5,9040],[84.5,4008],[84.5,6306],[98.5,7041],[78.5,2356],[90,7714],[83.3,4249],[83.3,8321],[67.8,3674],[85,3885],[93.8,2793],[93.3,2522],[79.8,4208],[90.5,3515],[86.3,5943],[91.3,5508],[92.5,5166],[84.3,3148],[94.8,3642],[81.8,5044],[72.8,7482],[88.8,1753],[97,4716],[90.5,3396],[91.3,2221],[59.8,6504],[77,2846],[90,2561],[93.3,6159],[96,6390],[80.8,4734],[96.5,3573],[87.5,4325],[87.3,2434],[91.8,2915],[91.5,4317],[93.8,1799],[87.8,3548],[88.5,2867],[93,4338],[96,4491],[87.5,6479],[78.3,9434],[87,4798],[86.3,4018],[86.8,9316],[75.3,7911],[88.5,4937],[95.8,4514],[76.5,5526],[98,2966],[96,2208],[88.5,2747],[92.3,3297],[79.3,2521],[90.8,1892],[90.3,2319],[98,3323],[90.8,6770],[86,2898],[81.5,5339],[82.3,2952],[90,1679],[79.8,3321],[78.3,4271],[96,2150],[91,4940],[94,2447],[73.5,6418],[87.8,2045],[77.8,4948],[69,7054],[94,4704],[81.8,4570],[87,5939],[79,3905],[84.3,2939],[82.3,3112],[79.8,5561],[91.3,3973],[94.8,2116],[82.3,4154],[84.5,1900],[76.5,1856],[90.8,4287],[92.3,2059],[88.3,3993],[86.8,2020],[83.3,4618],[89,3358],[88.5,4660],[91.8,1319],[86.8,5820],[67,7523],[93.3,3025],[91,1237],[96.5,6711],[86.5,4381],[85.5,2011],[92.3,5658],[95,1798],[100,2186],[81.3,4306],[94.5,3162],[94,4034],[86.3,1400],[91.3,3312],[82,7417],[89.5,5135],[98.8,2402]];
+// helpers
+function word(txt,x,y,size,t,opt={}){ // kinetic: slide up + fade, per char stagger
+  X.save();X.font=F(opt.w||900,size);X.textAlign=opt.align||'left';X.textBaseline='alphabetic';
+  const chars=[...txt];let cx=x; if(X.textAlign==='center'){cx=x-X.measureText(txt).width/2;X.textAlign='left'}
+  chars.forEach((ch,i)=>{const k=ease((t-i*0.035)/0.45);X.globalAlpha=k;X.fillStyle=opt.c||INK;
+    X.fillText(ch,cx,y+(1-k)*size*0.6);cx+=X.measureText(ch).width});
+  X.restore();
+}
+function strokePath(pts,t,color,wd){ // progressive polyline
+  if(pts.length<2)return;let L=0,seg=[];for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(d);L+=d}
+  let left=L*clamp(t);X.save();X.strokeStyle=color;X.lineWidth=wd;X.lineCap='round';X.lineJoin='round';X.beginPath();X.moveTo(...pts[0]);
+  for(let i=1;i<pts.length&&left>0;i++){const s=seg[i-1];const r=Math.min(1,left/s);X.lineTo(pts[i-1][0]+(pts[i][0]-pts[i-1][0])*r,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*r);left-=s}
+  X.stroke();X.restore();
+}
+function fish(cx,cy,s,t){ // line-art monkfish (아귀) built from sampled curves
+  const pts=[];const N=120;
+  for(let i=0;i<=N;i++){const a=i/N*Math.PI*2;const r=1+0.35*Math.cos(a)*(Math.cos(a)>0?1:0.4);
+    pts.push([cx+Math.cos(a)*170*s*r,cy+Math.sin(a)*95*s*(Math.cos(a)>0?1.05:0.7)])}
+  strokePath(pts,t*1.3,LN,3);
+  // tail
+  strokePath([[cx-230*s,cy],[cx-330*s,cy-70*s],[cx-310*s,cy],[cx-330*s,cy+70*s],[cx-230*s,cy]],t*1.6-0.4,LN,3);
+  // mouth + teeth
+  const m=[];for(let i=0;i<=10;i++){m.push([cx+120*s+i*12*s,cy+20*s+(i%2?14:0)*s])}strokePath(m,t*1.6-0.5,AC,3);
+  // lure
+  strokePath([[cx+60*s,cy-80*s],[cx+120*s,cy-170*s],[cx+190*s,cy-150*s]],t*1.6-0.7,LN,3);
+  if(t>0.9){X.save();X.globalAlpha=clamp((t-0.9)*8);X.fillStyle=AC;X.beginPath();X.arc(cx+195*s,cy-148*s,9*s,0,7);X.fill();
+    X.beginPath();X.arc(cx+90*s,cy-25*s,7*s,0,7);X.fillStyle=INK;X.fill();X.restore()}
+}
+function grid(){X.save();X.strokeStyle='rgba(201,185,154,.07)';X.lineWidth=1;for(let x=0;x<W;x+=64){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}for(let y=0;y<H;y+=64){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}X.restore()}
+function tag(txt,t){X.save();X.globalAlpha=ease(t*3);X.font=F(700,18);X.fillStyle=AC;X.fillText(txt,80,90);X.strokeStyle=AC;X.lineWidth=2;X.beginPath();X.moveTo(80,104);X.lineTo(80+300*ease(t*2),104);X.stroke();X.restore()}
+function counter(v0,v1,t,dec){return (v0+(v1-v0)*ease(t)).toFixed(dec)}
+// scenes: (local time sec, duration)
+const scenes=[
+ (s,d)=>{const t=s/d;fish(860,380,1.05,s/3.5);tag('INSAENG AGUJJIM · BRAND ROADMAP',t);
+   word('두 번째 브랜드,',80,280,76,s-0.3);word('지금일까?',80,375,96,s-0.9,{c:AC});
+   word('211개 매장 · 21개월 매출 데이터',80,470,28,s-3.2,{w:400,c:LN});},
+ (s,d)=>{const t=s/d;tag('01 · 네트워크는 성장 중',t);
+   const x0=80,x1=760,y0=600,y1=260,mn=70,mx=115;const pts=total.map((v,i)=>[x0+(x1-x0)*i/(total.length-1),y0-(v-mn)/(mx-mn)*(y0-y1)]);
+   X.save();X.strokeStyle='rgba(201,185,154,.3)';X.beginPath();X.moveTo(x0,y0);X.lineTo(x1,y0);X.stroke();X.restore();
+   strokePath(pts,s/4,LN,4);X.save();X.font=F(400,16);X.fillStyle=MUT;X.fillText('2025.01',x0,y0+28);X.fillText('2026.09',x1-60,y0+28);X.fillText('월 매출 합계(억 원)',x0,y1-20);X.restore();
+   word('동일 매장',840,300,34,s-0.8,{w:700,c:LN});word('+'+counter(0,6.2,(s-1)/2.5,1)+'%',840,410,120,s-1);
+   word('매장 162 → 211',840,500,40,s-4,{w:700});},
+ (s,d)=>{const t=s/d;tag('02 · 하지만 바닥이 약하다',t);
+   const bx=80,by=600,bw=70,mxh=260;hist.forEach((v,i)=>{const k=ease((s-i*0.15)/1.2);const h=v/39*mxh*k;const x=bx+i*(bw+14);
+     X.save();X.strokeStyle=i<2?AC:LN;X.lineWidth=3;X.strokeRect(x,by-h,bw,h);if(i<2){X.fillStyle='rgba(228,87,46,.18)';X.fillRect(x,by-h,bw,h)}
+     X.font=F(400,13);X.fillStyle=MUT;X.textAlign='center';X.fillText(histL[i],x+bw/2,by+22);X.restore()});
+   X.save();X.font=F(400,16);X.fillStyle=MUT;X.fillText('매장별 월평균 매출 분포(2026.1~9, 만 원)',bx,300);X.restore();
+   word('10곳 중 3곳',800,300,64,s-1);word('월 3천만 원 미만',800,360,30,s-1.6,{w:400,c:LN});
+   word('신규 매장',800,470,34,s-5,{w:700,c:LN});word('-40%',800,570,110,s-5.4,{c:AC});word('2026 오픈 vs 2023 오픈',800,615,22,s-6.5,{w:400,c:MUT});},
+ (s,d)=>{const t=s/d;tag('03 · 점검 점수 ≠ 매출',t);
+   const x0=80,x1=700,y0=620,y1=180;X.save();X.strokeStyle='rgba(201,185,154,.3)';X.strokeRect(x0,y1,x1-x0,y0-y1);X.restore();
+   scatter.forEach((p,i)=>{const k=clamp((s*60-i)/10);if(k<=0)return;const x=x0+(p[0]-50)/50*(x1-x0),y=y0-Math.min(p[1],12000)/12000*(y0-y1);
+     X.save();X.globalAlpha=k;X.strokeStyle=LN;X.lineWidth=1.5;X.beginPath();X.arc(x,y,5,0,7);X.stroke();X.restore()});
+   X.save();X.font=F(400,15);X.fillStyle=MUT;X.fillText('KMS 점검 점수 →',x1-130,y0+26);X.fillText('↑ 월평균 매출',x0,y1-12);X.restore();
+   strokePath([[x0,420],[x1,430]],(s-4)/1.2,AC,3);
+   word('r = -0.07',790,350,92,s-3);word('점검표가 성과를',790,450,38,s-5.5,{w:700,c:LN});word('움직이지 못한다',790,500,38,s-6,{w:700,c:LN});},
+ (s,d)=>{const t=s/d;tag('04 · 결론',t);
+   word('지금은',80,250,56,s-0.2,{w:700,c:LN});word('주 브랜드 집중.',80,350,92,s-0.6,{c:AC});
+   const ys=500;strokePath([[80,ys],[1200,ys]],(s-3)/2,LN,3);
+   [['0–6개월','하위 매장 회생',80],['6–12개월','출점 기준 강화 · 점검표 개편',440],['12개월+','숍인숍 검증 후 확장',860]].forEach((m,i)=>{
+     const k=clamp((s-3.5-i*1.4)/0.6);if(k<=0)return;X.save();X.globalAlpha=k;X.fillStyle=AC;X.beginPath();X.arc(m[2]+8,ys,8,0,7);X.fill();X.restore();
+     word(m[0],m[2],ys+50,22,s-3.6-i*1.4,{w:700,c:AC});word(m[1],m[2],ys+88,26,s-3.8-i*1.4,{w:700})});},
+ (s,d)=>{const t=s/d;tag('05 · 세컨브랜드 후보',t);
+   [['1','점심 1인 해물덮밥',' 낮 시간대 공백을 메운다',80],['2','매운 등갈비찜',' 수산 시세 위험을 나눈다',660]].forEach((c,i)=>{
+     const x=c[3],y=170,w=540,h=200,k=(s-i*0.8)/1.5;strokePath([[x,y],[x+w,y],[x+w,y+h],[x,y+h],[x,y]],k,i?LN:AC,3);
+     word(c[0],x+30,y+90,64,s-0.5-i*0.8,{c:i?LN:AC});word(c[1],x+100,y+85,36,s-0.7-i*0.8);word(c[2],x+100,y+135,22,s-1-i*0.8,{w:400,c:LN})});
+   ['동일매장 +5%','하위 비중 20%','신규 6개월 80%'].forEach((g,i)=>{const cx=240+i*400,cy=480,k=(s-3-i*0.6)/1;
+     const pts=[];for(let a=0;a<=60;a++){pts.push([cx+Math.cos(a/60*6.283-1.57)*44,cy+Math.sin(a/60*6.283-1.57)*44])}strokePath(pts,k,AC,3);
+     word('관문 '+(i+1),cx,cy+10,22,s-3.3-i*0.6,{w:700,align:'center'});word(g,cx,cy+80,22,s-3.5-i*0.6,{w:400,align:'center',c:LN})});
+   if(s>d-2.6){const k=ease((s-d+2.6)/0.8);X.save();X.globalAlpha=k*0.94;X.fillStyle=BG;X.fillRect(0,0,W,H);X.restore();
+     fish(640,300,0.55,(s-d+2.6)/1.5);word('통과하면, 그때 확장.',640,520,54,s-d+2.2,{align:'center'});word('인생아구찜 브랜드 전략 로드맵',640,575,22,s-d+1.6,{w:400,align:'center',c:LN})}}
+];
+let bufs=[],durs=[],starts=[],ctx,dest,t0=0,running=false;const GAP=0.25,TAIL=1.2;
+async function load(){ctx=new (window.AudioContext||window.webkitAudioContext)();dest=ctx.createMediaStreamDestination();
+  bufs=await Promise.all([1,2,3,4,5,6].map(i=>fetch('s'+i+'.wav').then(r=>r.arrayBuffer()).then(b=>ctx.decodeAudioData(b))));
+  durs=bufs.map((b,i)=>b.duration+GAP+(i==5?TAIL:0));let a=0.4;starts=durs.map(d=>{const s=a;a+=d;return s});return a}
+function frame(){if(!running)return;const now=ctx.currentTime-t0;X.fillStyle=BG;X.fillRect(0,0,W,H);grid();
+  let idx=starts.length-1;for(let i=0;i<starts.length;i++){if(now<starts[i]+durs[i]){idx=i;break}}
+  const ls=now-starts[idx];if(ls>=0)scenes[idx](ls,durs[idx]);
+  // scene transition wipe
+  if(ls<0.35&&idx>0){X.save();X.fillStyle=AC;X.fillRect(0,0,W*(1-ease(ls/0.35)),4);X.restore()}
+  X.save();X.fillStyle=AC;X.fillRect(0,H-4,W*clamp(now/(starts[5]+durs[5])),4);X.restore();
+  if(now>starts[5]+durs[5]){running=false;tick&&tick.terminate();onEnd&&onEnd();return}}
+// 워커 타이머: 탭이 백그라운드여도 30fps로 그린다
+let tick=null;function startTicker(){tick=new Worker(URL.createObjectURL(new Blob(['setInterval(()=>postMessage(0),33)'],{type:'text/javascript'})));tick.onmessage=frame}
+let onEnd=null;
+async function start(record){document.getElementById('st').textContent='불러오는 중…';const total=await load();
+  let rec,chunks=[];if(record){const vs=C.captureStream(30);const ms=new MediaStream([...vs.getVideoTracks(),...dest.stream.getAudioTracks()]);
+    rec=new MediaRecorder(ms,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm',videoBitsPerSecond:6e6});
+    rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);rec.start(500)}
+  t0=ctx.currentTime;bufs.forEach((b,i)=>{const src=ctx.createBufferSource();src.buffer=b;src.connect(ctx.destination);src.connect(dest);src.start(t0+starts[i])});
+  running=true;document.getElementById('st').textContent=record?'녹화 중… ('+total.toFixed(1)+'초)':'재생 중';
+  onEnd=()=>{if(!record){document.getElementById('st').textContent='끝';return}rec.onstop=async()=>{const blob=new Blob(chunks,{type:'video/webm'});
+     document.getElementById('st').textContent='저장 중… '+(blob.size/1e6).toFixed(1)+'MB';
+     try{const r=await fetch('/upload',{method:'POST',body:blob});document.getElementById('st').textContent='저장 완료: '+await r.text()+' '+(blob.size/1e6).toFixed(1)+'MB';window.__done=true}
+     catch(e){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='인생아구찜_브랜드전략_1분.webm';a.click();window.__done=true}};setTimeout(()=>rec.stop(),300)};
+  startTicker()}
+document.getElementById('play').onclick=()=>start(false);document.getElementById('rec').onclick=()=>start(true);
+// poster
+X.fillStyle=BG;X.fillRect(0,0,W,H);grid();fish(860,380,1.05,1);word('두 번째 브랜드,',80,280,76,9);word('지금일까?',80,375,96,9,{c:AC});word('▶ 재생을 누르세요 (음성 포함 약 61초)',80,470,26,9,{w:400,c:LN});
+</script></body></html>
